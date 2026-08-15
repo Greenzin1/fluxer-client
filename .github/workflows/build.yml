@@ -1,0 +1,49 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install CocoaPods
+        run: cd ios && pod install
+
+      - name: Build without signing
+        run: |
+          cd ios
+          xcodebuild -workspace FluxerClient.xcworkspace \
+            -scheme FluxerClient \
+            -configuration Release \
+            -archivePath build/FluxerClient.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+      - name: Create IPA
+        run: |
+          cd ios/build/FluxerClient.xcarchive/Products
+          mkdir -p Payload
+          mv Applications/FluxerClient.app Payload/
+          zip -r -9 ../../../Fluxer.ipa Payload/
+          rm -rf Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fluxer-iOS
+          path: ios/build/Fluxer.ipa

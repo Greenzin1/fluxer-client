@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -20,7 +24,11 @@ jobs:
         run: npm ci
 
       - name: Install CocoaPods
-        run: cd ios && pod install
+        run: |
+          cd ios
+          gem install cocoapods
+          pod repo update
+          pod install
 
       - name: Build without signing
         run: |
